@@ -21,7 +21,7 @@ fi
 
 MAX_AGE=900  # 15 minutes in seconds
 
-FILE_AGE=$(( $(date +%s) - $(stat -f %m "$DATA_FILE") ))  # macOS
+FILE_AGE=$(( $(date +%s) - $(stat -c %Y "$DATA_FILE") ))  # macOS
 
 if (( FILE_AGE >= MAX_AGE )); then
     echo "FAILED - File is stale ($FILE_AGE seconds old)"
@@ -91,5 +91,5 @@ done <<< "$DATA"
 PERFDATA=$(echo "$PERFDATA" | sed 's/^[[:space:]]*//')
 
 # Output Nagios format
-echo "OK - $PDU_NAME $PERFDATA"
+echo "OK - $PDU_NAME | $PERFDATA"
 exit 0
