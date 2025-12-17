@@ -12,6 +12,14 @@ if [[ -z "$PDU_NAME" ]]; then
     exit 3
 fi
 
+TIMEOUT=60
+
+# Kill self after timeout
+( sleep $TIMEOUT; echo "TIMEOUT - Fetching data from $PDU_NAME"; kill $$ 2>/dev/null ) &
+WATCHDOG=$!
+trap "kill $WATCHDOG 2>/dev/null" EXIT
+
+
 TMP_FILE=$(mktemp)
 trap "rm -f $TMP_FILE" EXIT
 
