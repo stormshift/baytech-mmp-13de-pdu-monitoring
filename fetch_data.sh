@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+#set -euo pipefail
 
 # Fetch BayTech MMP-14DE PDU data via avocent
 # Usage: ./fetch_data.sh <PDU-NAME> <fileprefix>
@@ -15,16 +15,13 @@ fi
 TIMEOUT=60
 
 # Kill self after timeout
-( sleep $TIMEOUT; echo "TIMEOUT - Fetching data from $PDU_NAME"; kill $$ 2>/dev/null ) &
-WATCHDOG=$!
-trap "kill $WATCHDOG 2>/dev/null" EXIT
-
+#( sleep $TIMEOUT; echo "TIMEOUT - Fetching data from $PDU_NAME"; kill $$ 2>/dev/null ) &
+#WATCHDOG=$!
+#trap "kill $WATCHDOG 2>/dev/null" EXIT
 
 TMP_FILE=$(mktemp)
 trap "rm -f $TMP_FILE" EXIT
-
-ssh -tt -q -i ~/.ssh/coe-muc-rsa \
-    -o BatchMode=yes \
+ssh -q -tt -i ~/.ssh/coe-muc-rsa \
     -o StrictHostKeyChecking=no \
     admin:${PDU_NAME}@avocent.coe.muc.redhat.com 'Status' 2>&1 >$TMP_FILE &
 
