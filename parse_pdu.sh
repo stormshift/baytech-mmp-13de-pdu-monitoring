@@ -2,9 +2,17 @@
 set -euo pipefail
 
 # Parse BayTech MMP-14DE PDU data and output Nagios performance data
-# Usage: ./parse_pdu.sh <data_file>
+# Usage: ./parse_pdu.sh <data_file> <PDU-NAME> [AMPS|KWH|TEMP|VOLTAGE|WATTAGE]
 
-DATA_FILE="${1:-/dev/stdin}"
+PDU_NAME="${2}" 
+DATA_KIND="${3:-AMPS}"
+
+if [[ -z "$PDU_NAME" ]]; then
+    echo "FAILED - PDU name is required"
+    exit 3
+fi
+
+DATA_FILE="${1}.${PDU_NAME}"
 
 if [[ ! -r "$DATA_FILE" && "$DATA_FILE" != "/dev/stdin" ]]; then
     echo "FAILED - Cannot read file: $DATA_FILE"
@@ -28,13 +36,13 @@ PERFDATA=""
 
 # Extract Total kW-h
 KWH=$(echo "$DATA" | grep -E "^Total kW-h:" | sed 's/Total kW-h:[[:space:]]*//' | tr -d '[:space:]')
-if [[ -n "$KWH" ]]; then
+if [[ -n "$KWH" && "$DATA_KIND" == "KWH" ]]; then
     PERFDATA="${PERFDATA} total_kwh=${KWH},"
 fi
 
 # # Extract Internal Temperature
 TEMP=$(echo "$DATA" | grep -E "^Int\. Temp:" | awk '{print $3}' )
-if [[ -n "$TEMP" ]]; then
+if [[ -n "$TEMP" && "$DATA_KIND" == "TEMP" ]]; then
     CELSIUS=$(echo "scale=1; ($TEMP - 32) * 5 / 9" | bc);
     PERFDATA="${PERFDATA} internal_temp_celsius=${CELSIUS},"
 fi
@@ -46,7 +54,7 @@ while IFS= read -r line; do
         TRUE_RMS="${BASH_REMATCH[2]}"
         PEAK_RMS="${BASH_REMATCH[3]}"
         
-        if [[ "$NAME" =~ ^(input_a|ckt[0-9]+)$ ]]; then
+        if [[ "$NAME" =~ ^(input_a|ckt[0-9]+)$ && "$DATA_KIND" == "AMPS" ]]; then
             PERFDATA="${PERFDATA} ${NAME}_true_rms_current=${TRUE_RMS},"
             PERFDATA="${PERFDATA} ${NAME}_peak_rms_current=${PEAK_RMS},"
         fi
@@ -63,11 +71,19 @@ while IFS= read -r line; do
         POWER="${BASH_REMATCH[5]}"
         VA="${BASH_REMATCH[6]}"
         
-        PERFDATA="${PERFDATA} circuit_${CIRCUIT}_true_rms_current=${TRUE_RMS},"
-        PERFDATA="${PERFDATA} circuit_${CIRCUIT}_peak_rms_current=${PEAK_RMS},"
-        PERFDATA="${PERFDATA} circuit_${CIRCUIT}_voltage=${VOLTAGE},"
-        PERFDATA="${PERFDATA} circuit_${CIRCUIT}_wattage=${POWER},"
-        PERFDATA="${PERFDATA} circuit_${CIRCUIT}_volt_amperes=${VA}"
+        if [[ "$DATA_KIND" == "AMPS" ]]; then
+            PERFDATA="${PERFDATA} circuit_${CIRCUIT}_true_rms_current=${TRUE_RMS},"
+            PERFDATA="${PERFDATA} circuit_${CIRCUIT}_peak_rms_current=${PEAK_RMS},"
+        fi
+        if [[ "$DATA_KIND" == "VOLTAGE" ]]; then
+            PERFDATA="${PERFDATA} circuit_${CIRCUIT}_voltage=${VOLTAGE},"
+        fi
+        if [[ "$DATA_KIND" == "WATTAGE" ]]; then
+            PERFDATA="${PERFDATA} circuit_${CIRCUIT}_wattage=${POWER},"
+        fi
+        # if [[ "$DATA_KIND" == "VOLTAGE" ]]; then
+        #     PERFDATA="${PERFDATA} circuit_${CIRCUIT}_volt_amperes=${VA},"
+        # fi
     fi
 done <<< "$DATA"
 
@@ -75,5 +91,5 @@ done <<< "$DATA"
 PERFDATA=$(echo "$PERFDATA" | sed 's/^[[:space:]]*//')
 
 # Output Nagios format
-echo "OK - PDU Status $PERFDATA"
+echo "OK - $PDU_NAME $PERFDATA"
 exit 0

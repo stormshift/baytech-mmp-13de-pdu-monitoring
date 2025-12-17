@@ -1,10 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# Parse BayTech MMP-14DE PDU data and output Nagios performance data
-# Usage: ./parse_pdu.sh <data_file>
+# Fetch BayTech MMP-14DE PDU data via avocent
+# Usage: ./fetch_data.sh <PDU-NAME> <fileprefix>
 
 PDU_NAME="${1}"
+FILE_PREFIX="${2}"
 
 if [[ -z "$PDU_NAME" ]]; then
     echo "UNKNOWN - PDU name is required"
@@ -13,7 +14,6 @@ fi
 
 TMP_FILE=$(mktemp)
 trap "rm -f $TMP_FILE" EXIT
-# TMP_FILE=/tmp/ficker2
 
 ssh -tt -q -i ~/.ssh/coe-muc-rsa \
     -o BatchMode=yes \
@@ -30,7 +30,7 @@ done
 
 kill $SSH_PID 2>/dev/null
 
-cp $TMP_FILE /tmp/final
+cp $TMP_FILE $FILE_PREFIX.${PDU_NAME}
 
 echo "OK - Data fetched from $PDU_NAME";
 exit 0;
