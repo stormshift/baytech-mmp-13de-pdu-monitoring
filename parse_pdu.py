@@ -48,7 +48,7 @@ def main():
         match = re.search(r"^Total kW-h:\s*(\S+)", data, re.MULTILINE)
         if match:
             kwh = match.group(1).strip()
-            perfdata.append(f"total_kwh={kwh}")
+            perfdata.append(f"total_kwh={kwh};;")
 
     # Extract Internal Temperature
     if data_kind == "TEMP":
@@ -56,7 +56,7 @@ def main():
         if match:
             temp_f = float(match.group(1))
             celsius = round((temp_f - 32) * 5 / 9, 1)
-            perfdata.append(f"internal_temp_celsius={celsius}")
+            perfdata.append(f"internal_temp_celsius={celsius};;")
 
     # Extract Circuit Breaker data (Input A, CKT1, CKT2)
     breaker_pattern = re.compile(
@@ -68,8 +68,8 @@ def main():
         peak_rms = match.group(3)
 
         if re.match(r"^(input_a|ckt[0-9]+)$", name) and data_kind == "AMPS":
-            perfdata.append(f"{name}_true_rms_current={true_rms}")
-            perfdata.append(f"{name}_peak_rms_current={peak_rms}")
+            perfdata.append(f"{name}_true_rms_current={true_rms};;")
+            perfdata.append(f"{name}_peak_rms_current={peak_rms};;")
 
     # Extract Circuit Group data (M1-M4) with voltage, power, VA
     circuit_pattern = re.compile(
@@ -85,15 +85,15 @@ def main():
         # va = match.group(6)  # Not used currently
 
         if data_kind == "AMPS":
-            perfdata.append(f"circuit_{circuit}_true_rms_current={true_rms}")
-            perfdata.append(f"circuit_{circuit}_peak_rms_current={peak_rms}")
+            perfdata.append(f"circuit_{circuit}_true_rms_current={true_rms};;")
+            perfdata.append(f"circuit_{circuit}_peak_rms_current={peak_rms};;")
         if data_kind == "VOLTAGE":
-            perfdata.append(f"circuit_{circuit}_voltage={voltage}")
+            perfdata.append(f"circuit_{circuit}_voltage={voltage};;")
         if data_kind == "WATTAGE":
-            perfdata.append(f"circuit_{circuit}_wattage={power}")
+            perfdata.append(f"circuit_{circuit}_wattage={power};;")
 
     # Output Nagios format
-    perfdata_str = ", ".join(perfdata)
+    perfdata_str = " ".join(perfdata)
     print(f"OK - {pdu_name} | {perfdata_str}")
     sys.exit(0)
 
