@@ -42,12 +42,14 @@ def main():
         data = f.read()
 
     perfdata = []
+    overall_status = []
 
     # Extract Total kW-h
     if data_kind == "KWH":
         match = re.search(r"^Total kW-h:\s*(\S+)", data, re.MULTILINE)
         if match:
             kwh = match.group(1).strip()
+            overall_status.append(f"Total kW-h: {kwh}")
             perfdata.append(f"total_kwh={kwh};;")
 
     # Extract Internal Temperature
@@ -56,18 +58,28 @@ def main():
         if match:
             temp_f = float(match.group(1))
             celsius = round((temp_f - 32) * 5 / 9, 1)
+            overall_status.append(f"Internal Temperature: {celsius} C")
             perfdata.append(f"internal_temp_celsius={celsius};;")
 
     # Extract Circuit Breaker data (Input A, CKT1, CKT2)
     breaker_pattern = re.compile(
         r"\|\s*([^|]+)\s*\|\s*([0-9.]+)\s*Amps\s*\|\s*([0-9.]+)\s*Amps\s*\|"
     )
+
+    total_amps_peak = 0.0
+    total_amps_value = 0.0
+
     for match in breaker_pattern.finditer(data):
         name = match.group(1).strip().replace(" ", "_").lower()
         true_rms = match.group(2)
         peak_rms = match.group(3)
 
         if re.match(r"^(input_a|ckt[0-9]+)$", name) and data_kind == "AMPS":
+
+            if name != "input_a":
+                total_amps_peak += float(peak_rms)
+                total_amps_value += float(true_rms)
+
             perfdata.append(f"{name}_true_rms_current={true_rms};;")
             perfdata.append(f"{name}_peak_rms_current={peak_rms};;")
 
@@ -76,6 +88,7 @@ def main():
         r"\|\s*Circuit\s+(M[0-9]+)\s*\|\s*([0-9.]+)\s*Amps\s*\|\s*([0-9.]+)\s*Amps\s*\|"
         r"\s*([0-9.]+)\s*Volts\s*\|\s*([0-9]+)\s*Watts\s*\|\s*([0-9]+)\s*VA\s*\|"
     )
+
     for match in circuit_pattern.finditer(data):
         circuit = match.group(1).lower()
         true_rms = match.group(2)
@@ -83,18 +96,24 @@ def main():
         voltage = match.group(4)
         power = match.group(5)
         # va = match.group(6)  # Not used currently
-
         if data_kind == "AMPS":
             perfdata.append(f"circuit_{circuit}_true_rms_current={true_rms};;")
             perfdata.append(f"circuit_{circuit}_peak_rms_current={peak_rms};;")
         if data_kind == "VOLTAGE":
+            overall_status.append(f"{circuit}: {voltage} Volt")
             perfdata.append(f"circuit_{circuit}_voltage={voltage};;")
         if data_kind == "WATTAGE":
+            overall_status.append(f"{circuit}: {power} Watt")
             perfdata.append(f"circuit_{circuit}_wattage={power};;")
+
+    if data_kind == "AMPS":
+        overall_status.append(f"Total Amps Peak: {total_amps_peak}, Total Amps Value: {total_amps_value}")
 
     # Output Nagios format
     perfdata_str = " ".join(perfdata)
-    print(f"OK - {pdu_name} | {perfdata_str}")
+    overall_status_str = " ".join(overall_status)
+    
+    print(f"OK - {pdu_name} {overall_status_str} | {perfdata_str}")
     sys.exit(0)
 
 
