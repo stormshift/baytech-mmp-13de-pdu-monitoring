@@ -82,7 +82,10 @@ def main():
 
             perfdata.append(f"{name}_true_rms_current={true_rms};;")
             perfdata.append(f"{name}_peak_rms_current={peak_rms};;")
-
+   
+    perfdata.append(f"cal_total_true_rms_current={total_amps_peak};;")
+    perfdata.append(f"cal_total_peak_rms_current={total_amps_value};;")
+    
     # Extract Circuit Group data (M1-M4) with voltage, power, VA
     circuit_pattern = re.compile(
         r"\|\s*Circuit\s+(M[0-9]+)\s*\|\s*([0-9.]+)\s*Amps\s*\|\s*([0-9.]+)\s*Amps\s*\|"
@@ -116,7 +119,5 @@ def main():
     print(f"OK - {pdu_name} {overall_status_str} | {perfdata_str}")
     sys.exit(0)
 
-
 if __name__ == "__main__":
     main()
-
