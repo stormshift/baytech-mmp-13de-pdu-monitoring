@@ -83,8 +83,8 @@ def main():
             perfdata.append(f"{name}_true_rms_current={true_rms};;")
             perfdata.append(f"{name}_peak_rms_current={peak_rms};;")
    
-    perfdata.append(f"cal_total_true_rms_current={total_amps_peak};;")
-    perfdata.append(f"cal_total_peak_rms_current={total_amps_value};;")
+    perfdata.append(f"cal_total_true_rms_current={total_amps_value};;")
+    perfdata.append(f"cal_total_peak_rms_current={total_amps_peak};;")
     
     # Extract Circuit Group data (M1-M4) with voltage, power, VA
     circuit_pattern = re.compile(
