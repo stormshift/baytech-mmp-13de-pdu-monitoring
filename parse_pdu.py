@@ -80,11 +80,11 @@ def main():
                 total_amps_peak += float(peak_rms)
                 total_amps_value += float(true_rms)
 
-            perfdata.append(f"{name}_true_rms_current={true_rms};;")
-            perfdata.append(f"{name}_peak_rms_current={peak_rms};;")
+            perfdata.append(f"{name}_true_rms_current={true_rms};10;12;0;17")
+            perfdata.append(f"{name}_peak_rms_current={peak_rms};10;12;0;17")
    
-    perfdata.append(f"cal_total_true_rms_current={total_amps_value};;")
-    perfdata.append(f"cal_total_peak_rms_current={total_amps_peak};;")
+    perfdata.append(f"cal_total_true_rms_current={total_amps_value};10;12;0;17")
+    perfdata.append(f"cal_total_peak_rms_current={total_amps_peak};10;12;0;17")
     
     # Extract Circuit Group data (M1-M4) with voltage, power, VA
     circuit_pattern = re.compile(
@@ -100,8 +100,8 @@ def main():
         power = match.group(5)
         # va = match.group(6)  # Not used currently
         if data_kind == "AMPS":
-            perfdata.append(f"circuit_{circuit}_true_rms_current={true_rms};;")
-            perfdata.append(f"circuit_{circuit}_peak_rms_current={peak_rms};;")
+            perfdata.append(f"circuit_{circuit}_true_rms_current={true_rms};10;12;0;17")
+            perfdata.append(f"circuit_{circuit}_peak_rms_current={peak_rms};10;12;0;17")
         if data_kind == "VOLTAGE":
             overall_status.append(f"{circuit}: {voltage} Volt")
             perfdata.append(f"circuit_{circuit}_voltage={voltage};;")
@@ -115,9 +115,15 @@ def main():
     # Output Nagios format
     perfdata_str = " ".join(perfdata)
     overall_status_str = " ".join(overall_status)
-    
-    print(f"OK - {pdu_name} {overall_status_str} | {perfdata_str}")
-    sys.exit(0)
+    if data_kind == "AMPS" and total_amps_value >= 12:
+        print(f"CRITICAL - {pdu_name} {overall_status_str} | {perfdata_str}")
+        sys.exit(2)
+    elif data_kind == "AMPS" and total_amps_value >= 10:
+        print(f"WARNING - {pdu_name} {overall_status_str} | {perfdata_str}")
+        sys.exit(1)
+    else:
+        print(f"OK - {pdu_name} {overall_status_str} | {perfdata_str}")
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
